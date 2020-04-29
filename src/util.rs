@@ -1,11 +1,9 @@
-// use std::collections::VecDeque;
 use std::fmt::{Display, Formatter};
-// use std::iter::Map;
 use std::path::{Path, PathBuf};
 
 pub use tlib::iter_tools::{
     indicator, indicator_not_escaped, unescape_all_except, AutoEscape, AutoEscapeIter, IterSplit,
-    SplitIter, Unescape, UnescapeIter,
+    SplitIter, SplitNotEscapedString, Unescape, UnescapeIter,
 };
 
 // counts left and right delimeters, stopping once the counter goes below zero
@@ -169,47 +167,6 @@ pub fn head_tail<T>(mut v: Vec<T>) -> Option<(T, Vec<T>)> {
         None
     } else {
         Some((v.remove(0), v))
-    }
-}
-
-pub trait SplitUnescString {
-    fn split_unescaped_impl(
-        &self,
-        max_len: Option<usize>,
-        sep: char,
-        esc: char,
-        keep_sep: bool,
-    ) -> Vec<String>;
-
-    #[inline]
-    fn split_unescaped(&self, sep: char, esc: char, keep_sep: bool) -> Vec<String> {
-        self.split_unescaped_impl(None, sep, esc, keep_sep)
-    }
-
-    #[inline]
-    fn splitn_unescaped(&self, n: usize, sep: char, esc: char, keep_sep: bool) -> Vec<String> {
-        self.split_unescaped_impl(Some(n), sep, esc, keep_sep)
-    }
-}
-
-impl<S: AsRef<str>> SplitUnescString for S {
-    fn split_unescaped_impl(
-        &self,
-        max_len: Option<usize>,
-        sep: char,
-        esc: char,
-        keep_sep: bool,
-    ) -> Vec<String> {
-        self.as_ref()
-            .chars()
-            .auto_escape(indicator(esc))
-            .split_impl(max_len, indicator_not_escaped(sep), keep_sep)
-            .map(|v| {
-                v.into_iter()
-                    .unescape(unescape_all_except(sep, esc))
-                    .collect::<String>()
-            })
-            .collect()
     }
 }
 

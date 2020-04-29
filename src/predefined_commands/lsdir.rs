@@ -1,6 +1,6 @@
 use crate::invoke::BasicCommandArgs;
 use crate::shell_util::matches_pattern;
-use crate::util::{make_absolute, SplitUnescString};
+use crate::util::{make_absolute, SplitNotEscapedString};
 use crate::{Engine, Issue};
 use std::path::Path;
 
@@ -17,7 +17,7 @@ impl LsdirConfig {
     pub fn new(args: &mut BasicCommandArgs) -> Result<Self, Issue> {
         let mut res = Self::default();
 
-        let mut spl = args.arg_str.split_unescaped(':', '\\', false);
+        let mut spl = args.arg_str.split_not_escaped(':', '\\', false);
         if spl.is_empty() {
             return Err(Issue {
                 id: "command:missing_args",
@@ -53,7 +53,7 @@ impl LsdirConfig {
                 }
                 "exclude_names" => {
                     res.exclude_by_name
-                        .append(&mut object.split_unescaped(' ', '\\', false));
+                        .append(&mut object.split_not_escaped(' ', '\\', false));
                 }
                 "include_only_names" => {
                     if res.include_only_by_name.is_none() {
@@ -62,7 +62,7 @@ impl LsdirConfig {
                     res.include_only_by_name
                         .as_mut()
                         .unwrap()
-                        .append(&mut object.split_unescaped(' ', '\\', false));
+                        .append(&mut object.split_not_escaped(' ', '\\', false));
                 }
                 verb => {
                     args.issues.push(Issue {

@@ -1,5 +1,5 @@
 use crate::invoke::{BasicCommandArgs, BlockCommandArgs};
-use crate::util::{Span, SplitUnescString};
+use crate::util::{Span, SplitNotEscapedString};
 use crate::{Engine, Issue};
 use regex::Regex;
 use std::mem::take;
@@ -14,7 +14,7 @@ impl RegexArgs {
     pub fn from_basic(args: &BasicCommandArgs) -> Result<Self, Issue> {
         let mut spl = args
             .arg_str
-            .splitn_unescaped(3, ':', '\\', false)
+            .splitn_not_escaped(3, ':', '\\', false)
             .into_iter();
 
         let pat = spl.next().unwrap();
@@ -43,7 +43,7 @@ impl RegexArgs {
     pub fn from_block(args: &mut BlockCommandArgs) -> Result<Self, Issue> {
         let mut spl = args
             .arg_str
-            .splitn_unescaped(2, ':', '\\', false)
+            .splitn_not_escaped(2, ':', '\\', false)
             .into_iter();
 
         let pat = spl.next().unwrap();

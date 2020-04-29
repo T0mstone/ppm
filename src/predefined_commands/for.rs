@@ -1,5 +1,5 @@
 use crate::invoke::BlockCommandArgs;
-use crate::util::SplitUnescString;
+use crate::util::SplitNotEscapedString;
 use crate::{Engine, Issue};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -24,7 +24,7 @@ impl ForConfig {
                 let arg = spl.collect::<Vec<_>>().join(" ");
                 Ok((
                     loopvar,
-                    ForConfig::List(arg.split_unescaped(':', '\\', false)),
+                    ForConfig::List(arg.split_not_escaped(':', '\\', false)),
                 ))
             }
             Some("from") => {

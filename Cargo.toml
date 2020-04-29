@@ -12,6 +12,7 @@ doc = false
 
 [dependencies.tlib]
 git = "git://github.com/T0mstone/tlib"
+rev = "a1c873b865cecd7af664f46771f915b4b1b83295"
 features = ["use_std"]
 
 [dependencies.regex]
