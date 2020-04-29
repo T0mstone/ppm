@@ -1,6 +1,6 @@
 [package]
 name = "ppm"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["T0mstone <realt0mstone@gmail.com>"]
 edition = "2018"
 
@@ -9,6 +9,10 @@ name = "test_main"
 doc = false
 
 [dependencies]
+
+[dependencies.tlib]
+git = "git://github.com/T0mstone/tlib"
+features = ["use_std"]
 
 [dependencies.regex]
 version = "1.3.7"

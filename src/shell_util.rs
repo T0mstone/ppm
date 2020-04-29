@@ -1,5 +1,5 @@
 use crate::util::{
-    indicator, unescape_all_except, unescaped_indicator, AutoEscape, CreateTakeWhileLevelGe0,
+    indicator, indicator_not_escaped, unescape_all_except, AutoEscape, CreateTakeWhileLevelGe0,
     Unescape,
 };
 
@@ -11,7 +11,7 @@ pub fn split_args(s: &str) -> Vec<String> {
         match c {
             '"' if !esc => {
                 last.extend(
-                    iter.take_while_lvl_ge0(|_| false, unescaped_indicator('"'), false)
+                    iter.take_while_lvl_ge0(|_| false, indicator_not_escaped('"'), false)
                         .unescape(unescape_all_except('"', '\\')),
                 );
             }

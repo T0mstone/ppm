@@ -3,8 +3,8 @@ pub use super::lsdir::handler as lsdir_handler;
 pub use super::regex::regex_sub_basic as regex_sub_handler;
 use crate::invoke::BasicCommandArgs;
 use crate::util::{
-    head_tail, indicator, make_absolute, unescaped_indicator, unescaped_length, AutoEscape,
-    IterSplit, Span, Unescape,
+    head_tail, indicator, indicator_not_escaped, make_absolute, AutoEscape, IterSplit, Span,
+    Unescape,
 };
 use crate::{absorb_new_issues, shell_util, BasicHandler};
 use crate::{Engine, Issue};
@@ -111,11 +111,14 @@ pub fn fallback_handler(args: BasicCommandArgs, engine: &mut Engine) -> String {
         .arg_str
         .chars()
         .auto_escape(indicator('\\'))
-        .split(unescaped_indicator(':'), false);
+        .split(indicator_not_escaped(':'), false);
 
     let mut cumulen = None;
     while let Some(v) = spl.next() {
-        let len = unescaped_length(&v, |c: &char| c.len_utf8(), 1);
+        let len = v
+            .iter()
+            .map(|&(esc, c)| c.len_utf8() + if esc { 1 } else { 0 })
+            .sum();
         let subspan = Span::new(args.cmd_span.start + cumulen.unwrap_or(0), len);
         match cumulen.as_mut() {
             Some(cumulen) => *cumulen += len + 1,
