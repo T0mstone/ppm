@@ -277,6 +277,7 @@ impl Engine {
     }
 }
 
+// todo: add more unit tests (ugh)
 #[cfg(test)]
 mod tests {
     use super::*;

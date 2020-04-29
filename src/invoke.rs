@@ -11,13 +11,12 @@ pub fn find_arg_start(s: &str) -> Option<(bool, usize)> {
     //       and thus it will fail to be recognised
     let mut delay = true;
     s.char_indices()
-        // only take up to the first whitespace or to the next percent - those aren't allowed inside command names
-        // todo: make this constraint clear in the docs
         .auto_escape(|t| t.1 == '\\')
+        // only take up to the first invalid character
         .take_while(|&(esc, (_, c))| {
             replace(
                 &mut delay,
-                esc || (!c.is_whitespace() && c != '%' && c != '('),
+                esc || (!c.is_whitespace() && !"%(){}".contains(c)),
             )
         })
         .last()

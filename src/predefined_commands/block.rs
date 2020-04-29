@@ -33,3 +33,5 @@ pub fn setvar_handler(args: BlockCommandArgs, engine: &mut Engine) -> String {
     engine.vars.insert(var, val);
     String::new()
 }
+
+// todo: macros
