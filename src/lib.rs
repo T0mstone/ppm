@@ -22,10 +22,10 @@ mod invoke;
 mod shell_util;
 mod util;
 
-///
+/// Predefined Commands
 pub mod predefined_commands;
 
-/// issues are problems encountered.
+/// Issues are problems encountered.
 ///
 /// ppm has a philosophy of always allowing you to have an end result (be it empty),
 /// thus there are no real "errors" in the sense that they stop execution.
@@ -40,7 +40,7 @@ pub struct Issue {
     pub span: Span,
 }
 
-/// A helper struct for displaying [`Issue`s](struct.Issue.html)
+/// A helper struct for displaying [`Issue`](struct.Issue.html)s
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct IssueDisplay<'a> {
     id: &'static str,

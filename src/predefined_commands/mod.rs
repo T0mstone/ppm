@@ -1,6 +1,6 @@
-///
+/// Predefined basic commands
 pub mod basic;
-///
+/// Predefined block commands
 pub mod block;
 
 mod r#for;
