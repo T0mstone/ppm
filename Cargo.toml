@@ -1,0 +1,15 @@
+[package]
+name = "ppm"
+version = "0.1.0"
+authors = ["T0mstone <realt0mstone@gmail.com>"]
+edition = "2018"
+
+[[bin]]
+name = "test_main"
+doc = false
+
+[dependencies]
+
+[dependencies.regex]
+version = "1.3.7"
+optional = true
