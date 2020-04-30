@@ -19,24 +19,16 @@ impl RegexArgs {
 
         let pat = spl.next().unwrap();
         if pat.is_empty() {
-            return Err(Issue {
-                id: "command:missing_args",
-                msg: "empty regular expressions are not supported".to_string(),
-                span: args.cmd_span,
-            });
+            return Err(args.missing_args("empty regular expressions are not supported"));
         }
 
-        let sub = spl.next().ok_or(Issue {
-            id: "command:invalid_args",
-            msg: "no substitution pattern given".to_string(),
-            span: args.cmd_span,
-        })?;
+        let sub = spl
+            .next()
+            .ok_or(args.invalid_args("no substitution pattern given".to_string()))?;
 
-        let text = spl.next().ok_or(Issue {
-            id: "command:invalid_args",
-            msg: "no string to substitute to".to_string(),
-            span: args.cmd_span,
-        })?;
+        let text = spl
+            .next()
+            .ok_or(args.invalid_args("no string to substitute to".to_string()))?;
         Ok(Self { pat, sub, text })
     }
 
@@ -48,18 +40,12 @@ impl RegexArgs {
 
         let pat = spl.next().unwrap();
         if pat.is_empty() {
-            return Err(Issue {
-                id: "command:missing_args",
-                msg: "empty regular expressions are not supported".to_string(),
-                span: args.start_cmd_span,
-            });
+            return Err(args.missing_args("empty regular expressions are not supported"));
         }
 
-        let sub = spl.next().ok_or(Issue {
-            id: "command:invalid_args",
-            msg: "no substitution pattern given".to_string(),
-            span: args.start_cmd_span,
-        })?;
+        let sub = spl
+            .next()
+            .ok_or(args.invalid_args("no substitution pattern given".to_string()))?;
 
         Ok(Self {
             pat,

@@ -41,11 +41,8 @@ pub fn var_handler(args: BasicCommandArgs, engine: &mut Engine) -> String {
     let key = engine.process(args.arg_str.clone(), args.issues);
     engine.process(
         engine.vars.get(&key).cloned().unwrap_or_else(|| {
-            args.issues.push(Issue {
-                id: "command:invalid_args",
-                msg: format!("unknown variable: {}", args.arg_str),
-                span: args.cmd_span,
-            });
+            args.issues
+                .push(args.invalid_args(format!("unknown variable: {}", args.arg_str)));
             String::new()
         }),
         args.issues,
@@ -64,11 +61,8 @@ pub fn run_process_handler(args: BasicCommandArgs, engine: &mut Engine) -> Strin
     let (cmd, argv) = head_tail(v).unwrap();
 
     if cmd.is_empty() {
-        args.issues.push(Issue {
-            id: "command:missing_args",
-            msg: "no process to run given".to_string(),
-            span: args.cmd_span,
-        });
+        args.issues
+            .push(args.missing_args("no process to run given"));
         return String::new();
     }
 

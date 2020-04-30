@@ -13,11 +13,7 @@ impl ForConfig {
         let mut spl = args.arg_str.split(' ');
         let loopvar = spl
             .next()
-            .ok_or(Issue {
-                id: "command:invalid_args",
-                msg: "no loop variable given".to_string(),
-                span: args.start_cmd_span,
-            })?
+            .ok_or(args.invalid_args("no loop variable given".to_string()))?
             .to_string();
         match spl.next() {
             Some("in") => {
@@ -31,66 +27,26 @@ impl ForConfig {
                 let from = match spl.next().map(|s| s.parse::<i128>().map_err(|_| s)) {
                     Some(Ok(x)) => x,
                     Some(Err(s)) => {
-                        return Err(Issue {
-                            id: "command:invalid_args",
-                            msg: format!("invalid starting integer: {}", s),
-                            span: args.start_cmd_span,
-                        })
+                        return Err(args.invalid_args(format!("invalid starting integer: {}", s)))
                     }
-                    None => {
-                        return Err(Issue {
-                            id: "command:invalid_args",
-                            msg: "no starting integer given".to_string(),
-                            span: args.start_cmd_span,
-                        })
-                    }
+                    None => return Err(args.invalid_args("no starting integer given".to_string())),
                 };
                 match spl.next() {
                     Some("to") => (),
-                    Some(s) => {
-                        return Err(Issue {
-                            id: "command:invalid_args",
-                            msg: format!("invalid range end: {}", s),
-                            span: args.start_cmd_span,
-                        })
-                    }
-                    None => {
-                        return Err(Issue {
-                            id: "command:invalid_args",
-                            msg: "no range end given".to_string(),
-                            span: args.start_cmd_span,
-                        })
-                    }
+                    Some(s) => return Err(args.invalid_args(format!("invalid range end: {}", s))),
+                    None => return Err(args.invalid_args("no range end given".to_string())),
                 }
                 let to = match spl.next().map(|s| s.parse::<i128>().map_err(|_| s)) {
                     Some(Ok(x)) => x,
                     Some(Err(s)) => {
-                        return Err(Issue {
-                            id: "command:invalid_args",
-                            msg: format!("invalid ending integer: {}", s),
-                            span: args.start_cmd_span,
-                        })
+                        return Err(args.invalid_args(format!("invalid ending integer: {}", s)))
                     }
-                    None => {
-                        return Err(Issue {
-                            id: "command:invalid_args",
-                            msg: "no ending integer given".to_string(),
-                            span: args.start_cmd_span,
-                        })
-                    }
+                    None => return Err(args.invalid_args("no ending integer given".to_string())),
                 };
                 Ok((loopvar, ForConfig::Range(from, to)))
             }
-            Some(x) => Err(Issue {
-                id: "command:invalid_args",
-                msg: format!("unknown repeat kind: {}", x),
-                span: args.start_cmd_span,
-            }),
-            None => Err(Issue {
-                id: "command:missing_args",
-                msg: "no repeat kind given".to_string(),
-                span: args.start_cmd_span,
-            }),
+            Some(x) => Err(args.invalid_args(format!("unknown repeat kind: {}", x))),
+            None => Err(args.missing_args("no repeat kind given")),
         }
     }
 }

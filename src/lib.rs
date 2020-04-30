@@ -11,7 +11,7 @@
 //! Command names may not contain whitespace characters or any of the characters `%(){}`
 
 pub use crate::invoke::{BasicCommandArgs, BlockCommandArgs};
-use crate::util::{FileLoc, Span};
+pub use crate::util::{RowCol, Span};
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::mem::take;
@@ -45,8 +45,8 @@ pub struct Issue {
 pub struct IssueDisplay<'a> {
     id: &'static str,
     msg: &'a str,
-    start: FileLoc,
-    end: FileLoc,
+    start: RowCol,
+    end: RowCol,
 }
 
 impl<'a> Display for IssueDisplay<'a> {
@@ -102,7 +102,8 @@ pub type BlockHandler = fn(BlockCommandArgs, &mut Engine) -> String;
 /// The main type.
 #[derive(Clone)]
 pub struct Engine {
-    vars: HashMap<String, String>,
+    /// The variables stored in the engine
+    pub vars: HashMap<String, String>,
     root_path: Option<PathBuf>,
     basic_commands: HashMap<String, BasicHandler>,
     block_commands: HashMap<String, BlockHandler>,
@@ -247,7 +248,7 @@ impl Engine {
                 id: "command:unknown",
                 msg: format!(
                     "invalid or unknown command at {} (starting with {}...)",
-                    FileLoc::from_index(offs, &s),
+                    RowCol::from_index(offs, &s),
                     if s[offs..].len() < 10 {
                         &s[offs..]
                     } else {

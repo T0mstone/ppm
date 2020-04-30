@@ -19,11 +19,7 @@ impl LsdirConfig {
 
         let mut spl = args.arg_str.split_not_escaped(':', '\\', false);
         if spl.is_empty() {
-            return Err(Issue {
-                id: "command:missing_args",
-                msg: "no path given".to_string(),
-                span: args.cmd_span,
-            });
+            return Err(args.missing_args("no path given"));
         }
 
         res.path = spl.remove(0);

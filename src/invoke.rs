@@ -46,6 +46,28 @@ pub struct BasicCommandArgs<'a> {
     pub issues: &'a mut Vec<Issue>,
 }
 
+impl<'a> BasicCommandArgs<'a> {
+    /// Creates an issue with id `"command:missing_args"` and span `self.cmd_span`
+    #[inline]
+    pub fn missing_args(&self, msg: &str) -> Issue {
+        Issue {
+            id: "command:missing_args",
+            msg: msg.to_string(),
+            span: self.cmd_span,
+        }
+    }
+
+    /// Creates an issue with id `"command:invalid_args"` and span `self.cmd_span`
+    #[inline]
+    pub fn invalid_args(&self, msg: String) -> Issue {
+        Issue {
+            id: "command:invalid_args",
+            msg,
+            span: self.cmd_span,
+        }
+    }
+}
+
 // only returns None if the sequence is invalid
 pub fn invoke_basic_handlers(
     s: &str,
@@ -103,6 +125,28 @@ pub struct BlockCommandArgs<'a> {
     pub body: String,
     /// All issues that were encountered (will be mutated by handlers)
     pub issues: &'a mut Vec<Issue>,
+}
+
+impl<'a> BlockCommandArgs<'a> {
+    /// Creates an issue with id `"command:missing_args"` and span `self.start_cmd_span`
+    #[inline]
+    pub fn missing_args(&self, msg: &str) -> Issue {
+        Issue {
+            id: "command:missing_args",
+            msg: msg.to_string(),
+            span: self.start_cmd_span,
+        }
+    }
+
+    /// Creates an issue with id `"command:invalid_args"` and span `self.start_cmd_span`
+    #[inline]
+    pub fn invalid_args(&self, msg: String) -> Issue {
+        Issue {
+            id: "command:invalid_args",
+            msg,
+            span: self.start_cmd_span,
+        }
+    }
 }
 
 // only returns None if the sequence is invalid

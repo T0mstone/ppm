@@ -79,13 +79,16 @@ impl<I: Iterator, P: FnMut(&I::Item) -> bool, Q: FnMut(&I::Item) -> bool>
     }
 }
 
+/// A position in a string, split into row and column
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub struct FileLoc {
+pub struct RowCol {
+    /// The row (a.k.a. line) number
     pub row: usize,
+    /// The column number
     pub col: usize,
 }
 
-impl Display for FileLoc {
+impl Display for RowCol {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         (self.row + 1).fmt(f)?;
         f.pad(":")?;
@@ -93,7 +96,8 @@ impl Display for FileLoc {
     }
 }
 
-impl FileLoc {
+impl RowCol {
+    /// Calculates a `RowCol` from an index and a corresponding `str`
     pub fn from_index(i: usize, s: &str) -> Self {
         // the 'cursor' sits right before the char at `pos`, thus the range needs to be exclusive
         let before = &s[..i];
@@ -103,6 +107,7 @@ impl FileLoc {
         Self { row, col }
     }
 
+    /// Calculates an index from a `RowCol` and a corresponding `str`
     pub fn to_index(&self, s: &str) -> usize {
         let i: usize = s.split('\n').take(self.row).map(|s| s.len()).sum();
         // no rows: i == 0
@@ -113,47 +118,51 @@ impl FileLoc {
     }
 }
 
+/// A region in a string
 #[derive(Default, Debug, Copy, Clone, Eq, PartialEq)]
 pub struct Span {
+    /// the starting index
     pub start: usize,
+    /// the length
     pub len: usize,
 }
 
 impl Span {
+    /// Creates a new `Span`
     #[inline]
     pub fn new(start: usize, len: usize) -> Self {
         Self { start, len }
     }
 
+    /// Creates a new `Span` at position `0` with length `0`
     #[inline]
     pub fn empty() -> Self {
         Self::default()
     }
 
-    #[inline]
     /// Returns `idx + len`, so the position *right after* the end of the span
+    #[inline]
     pub fn end(&self) -> usize {
         self.start + self.len
     }
 
-    #[inline]
-    pub fn lengthen(&mut self, d: usize) {
-        self.len += d;
-    }
-
+    /// Indexes into a `str`
     #[inline]
     pub fn index_str<'a>(&self, s: &'a str) -> &'a str {
         &s[self.start..self.end()]
     }
 
+    /// Splits the span into a pair of [`RowCol`](struct.RowCol)s,
+    /// the first one at the start and the second on at the end of the Span
     #[inline]
-    pub fn start_end_loc(&self, s: &str) -> (FileLoc, FileLoc) {
+    pub fn start_end_loc(&self, s: &str) -> (RowCol, RowCol) {
         (
-            FileLoc::from_index(self.start, s),
-            FileLoc::from_index(self.end(), s),
+            RowCol::from_index(self.start, s),
+            RowCol::from_index(self.end(), s),
         )
     }
 
+    /// Shifts the starting point forward without affecting the end
     #[inline]
     pub fn shift_start_forward(&mut self, shift: usize) {
         self.start += shift;
