@@ -9,8 +9,6 @@ pub struct LsdirConfig {
     pub path: String,
     pub exclude_by_name: Vec<String>,
     pub include_only_by_name: Option<Vec<String>>,
-    pub sort_key: Option<String>,
-    pub sort_descending: bool,
 }
 
 impl LsdirConfig {
@@ -32,21 +30,6 @@ impl LsdirConfig {
                 None => continue,
             };
             match verb {
-                "sort_key" => res.sort_key = Some(object.to_string()),
-                "sort_order" => {
-                    if ["-", "desc", "descending", "decreasing", "dec"].contains(&object) {
-                        res.sort_descending = true;
-                    } else if !["+", "asc", "ascemdomg", "increasing", "inc"].contains(&object) {
-                        args.issues.push(Issue {
-                            id: "command:invalid_args:partial",
-                            msg: format!(
-                                "warning: unknown sort_order: `{}`. Try `+` or `-`",
-                                object
-                            ),
-                            span: args.cmd_span,
-                        });
-                    }
-                }
                 "exclude_names" => {
                     res.exclude_by_name
                         .append(&mut object.split_not_escaped(' ', '\\', false));
@@ -94,8 +77,6 @@ impl LsdirConfig {
 ///     - first argument: the directory to take entries from
 ///     - remaining arguments: each has the form `<verb> <object>`.
 ///         -  escaping `' '` with `'\\'` is supported, all other instances of `'\\'` are left unchanged. Possible verbs are:
-///         - `sort_key`: defines a string that is interpolated for each entry, according to which the entries are sorted
-///         - `sort_order`: defines an order (increasing or decreasing) to which the entries are sorted
 ///         - `exclude_names`: the object is a whitespace-separated list of patterns (`'\ '` to escape a whitespace). Files whose names match one of these patterns will not be listed
 ///             - the patterns support character-by-character equality as well as single-star-globs
 ///         - `include_only_names`: the object is a whitespace-separated list of patterns (`'\ '` to escape a whitespace). Only Files whose names match one of these patterns will be listed
