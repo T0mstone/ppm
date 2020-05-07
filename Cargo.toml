@@ -1,6 +1,6 @@
 [package]
 name = "ppm"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["T0mstone <realt0mstone@gmail.com>"]
 edition = "2018"
 

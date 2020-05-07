@@ -185,6 +185,9 @@ pub enum Free {}
 pub enum Captured {}
 
 /// The main type.
+///
+/// The type parameter is a typestate with either [`Free`](enum.Free.html) or [`Captured`](enum.Captured.html).\
+/// An `Engine<Captured>` cannot be created by you, the user. It is, however, part of [`CommandConfig`](struct.CommandConfig.html).
 #[derive(Clone)]
 pub struct Engine<State> {
     /// The variables stored in the engine
@@ -208,7 +211,7 @@ impl<State> std::fmt::Debug for Engine<State> {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct InvalidCommandName(String);
 
-impl<State> Engine<State> {
+impl Engine<Free> {
     /// Creates a new engine which knows the given variables, but no commands
     #[inline]
     pub fn new(vars: HashMap<String, String>) -> Self {
