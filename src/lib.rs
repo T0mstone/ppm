@@ -13,7 +13,6 @@
 //!
 //! Command names may not contain whitespace characters or any of the characters `%(){}`
 
-// pub use crate::invoke::{BasicCommandArgs, BlockCommandArgs};
 pub use crate::util::{RowCol, Span};
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
@@ -22,15 +21,11 @@ use std::mem::{replace, take};
 use std::path::PathBuf;
 use tlib::iter_tools::{AutoEscape, IterSplit, Unescape};
 
-// mod invoke;
-
 mod shell_util;
 mod util;
 
 /// Predefined Commands
 pub mod predefined_commands;
-// /// Predefined Commands
-// pub mod predefined_commands_old;
 
 /// Issues are problems encountered.
 ///
@@ -181,10 +176,6 @@ impl<'a, 'b> CommandConfig<'a, 'b> {
     }
 }
 
-// /// The type of a handler function for basic commands
-// pub type BasicHandler = fn(BasicCommandArgs, &mut Engine) -> String;
-// /// The type of a handler function for block commands
-// pub type BlockHandler = fn(BlockCommandArgs, &mut Engine) -> String;
 /// The type of a command handler function
 pub type CommandHandler = fn(CommandConfig) -> String;
 
@@ -199,8 +190,6 @@ pub struct Engine<State> {
     /// The variables stored in the engine
     pub vars: HashMap<String, String>,
     root_path: Option<PathBuf>,
-    // basic_commands: HashMap<String, BasicHandler>,
-    // block_commands: HashMap<String, BlockHandler>,
     commands: HashMap<String, CommandHandler>,
     _marker: PhantomData<State>,
 }
@@ -210,14 +199,6 @@ impl<State> std::fmt::Debug for Engine<State> {
         f.debug_struct("Engine")
             .field("vars", &self.vars)
             .field("root_path", &self.root_path)
-            // .field(
-            //     "basic_commands",
-            //     &self.basic_commands.keys().collect::<HashSet<_>>(),
-            // )
-            // .field(
-            //     "block_commands",
-            //     &self.block_commands.keys().collect::<HashSet<_>>(),
-            // )
             .field("commands", &self.commands.keys().collect::<HashSet<_>>())
             .finish()
     }
@@ -245,10 +226,6 @@ impl<State> Engine<State> {
     #[inline]
     pub fn with_predefined_commands(vars: HashMap<String, String>) -> Self {
         let mut res = Self::new(vars);
-        // res.add_basic_commands(predefined_commands::basic::get_all_handlers())
-        //     .expect("internal error: default basic command names nonconformal");
-        // res.add_block_commands(predefined_commands::block::get_all_handlers())
-        //     .expect("internal error: default block command names nonconformal");
         res.add_commands(predefined_commands::get_all_handlers())
             .expect("internal error: default command names invalid");
         res
@@ -316,58 +293,6 @@ impl<State> Engine<State> {
             Err(errs)
         }
     }
-
-    // /// Adds a basic command to the engine's knowledge
-    // #[inline]
-    // pub fn add_basic_command(
-    //     &mut self,
-    //     cmd: &str,
-    //     handler: BasicHandler,
-    // ) -> Result<Option<BasicHandler>, InvalidCommandName> {
-    //     if Self::is_valid_command_name(cmd) {
-    //         Ok(self.basic_commands.insert(cmd.to_string(), handler))
-    //     } else {
-    //         Err(InvalidCommandName(cmd.to_string()))
-    //     }
-    // }
-    //
-    // /// Adds a block command to the engine's knowledge
-    // #[inline]
-    // pub fn add_block_command(
-    //     &mut self,
-    //     cmd: &str,
-    //     handler: BlockHandler,
-    // ) -> Result<Option<BlockHandler>, InvalidCommandName> {
-    //     if Self::is_valid_command_name(cmd) {
-    //         Ok(self.block_commands.insert(cmd.to_string(), handler))
-    //     } else {
-    //         Err(InvalidCommandName(cmd.to_string()))
-    //     }
-    // }
-    //
-    // /// Adds multiple basic commands to the engine's knowledge
-    // #[inline]
-    // pub fn add_basic_commands<I: IntoIterator<Item = (String, BasicHandler)>>(
-    //     &mut self,
-    //     iter: I,
-    // ) -> Result<(), InvalidCommandName> {
-    //     for (k, v) in iter.into_iter() {
-    //         self.add_basic_command(&k, v)?;
-    //     }
-    //     Ok(())
-    // }
-    //
-    // /// Adds multiple block commands to the engine's knowledge
-    // #[inline]
-    // pub fn add_block_commands<I: IntoIterator<Item = (String, BlockHandler)>>(
-    //     &mut self,
-    //     iter: I,
-    // ) -> Result<(), InvalidCommandName> {
-    //     for (k, v) in iter.into_iter() {
-    //         self.add_block_command(&k, v)?;
-    //     }
-    //     Ok(())
-    // }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -553,70 +478,6 @@ impl Engine<Free> {
 
         (processed, issues)
     }
-
-    // /// processes a string, pushing all encountered issues onto `issues`
-    // pub fn process(&mut self, mut s: String, issues: &mut Vec<Issue>) -> String {
-    //     let mut changes = vec![];
-    //     let mut offs = 0;
-    //     println!("process {:?}", s);
-    //     while let Some(di) = s[offs..].find('%') {
-    //         if s.get(offs + 1..=offs + 1) == Some("%") {
-    //             // "%%" is an escaped "%"
-    //             offs += 2;
-    //             continue;
-    //         }
-    //         offs += di;
-    //         let i = offs + 1;
-    //         let sl = &s[i..];
-    //
-    //         if let Some((len, res, mut new_issues)) = invoke::invoke_block_handlers(sl, i, self) {
-    //             // dbgr!(len, &s[offs..offs + len]);
-    //             changes.push((offs, len, res));
-    //             offs += len;
-    //             // dbgr!(&s[offs..], s[offs..].find('%'));
-    //             issues.append(&mut new_issues);
-    //             continue;
-    //         }
-    //
-    //         if let Some((len, res, mut new_issues)) = invoke::invoke_basic_handlers(sl, i, self) {
-    //             // dbgr!(len, &s[offs..offs + len]);
-    //             changes.push((offs, len, res));
-    //             offs += len;
-    //             // dbgr!(&s[offs..], s[offs..].find('%'));
-    //             issues.append(&mut new_issues);
-    //             continue;
-    //         }
-    //
-    //         issues.push(Issue {
-    //             id: "command:unknown",
-    //             msg: format!(
-    //                 "invalid or unknown command at {} (starting with {}...)",
-    //                 RowCol::from_index(offs, &s),
-    //                 if s[offs..].len() < 10 {
-    //                     &s[offs..]
-    //                 } else {
-    //                     &s[offs..offs + 10]
-    //                 }
-    //             ),
-    //             span: Span::new(offs, 1),
-    //         });
-    //
-    //         // move one over to find the next `%`
-    //         offs += 1;
-    //     }
-    //     // reverse it to avoid index-shifting
-    //     changes.reverse();
-    //     // dbgr!();
-    //     for (offs, len, res) in changes {
-    //         // dbgr!(offs, len, s.len());
-    //         s.replace_range(offs..offs + len, &res);
-    //     }
-    //     println!("done processing. Result: {:?}", s);
-    //     if !issues.is_empty() {
-    //         println!("issues encountered: {:?}", issues);
-    //     }
-    //     s
-    // }
 }
 
 // todo: add more unit tests
