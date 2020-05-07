@@ -58,9 +58,9 @@ pub fn split_args(s: &str) -> Vec<String> {
 // }
 
 pub fn matches_pattern(mut s: &str, pat: &str) -> bool {
-    let mut pat = pat.chars().enumerate().map(|(i, c)| (i == 0, c));
+    let pat = pat.chars().enumerate().map(|(i, c)| (i == 0, c));
     let mut last_star = false;
-    while let Some((first, c)) = pat.next() {
+    for (first, c) in pat {
         if c == '*' {
             last_star = true;
         } else {

@@ -168,6 +168,26 @@ impl Span {
         self.start += shift;
         self.len -= shift;
     }
+
+    /// Treats `self` as starting from `other.start` and returns the absolute span of `self`
+    ///
+    /// # Fails
+    /// Returns `None` when `self` is too long to fit into `other`
+    #[inline]
+    pub fn relative_to(mut self, other: &Self) -> Option<Self> {
+        self.start += other.start;
+        if self.end() <= other.end() {
+            Some(self)
+        } else {
+            None
+        }
+    }
+
+    /// Creates a span with `self.start` and `len`
+    #[inline]
+    pub fn with_length(self, len: usize) -> Self {
+        Self { len, ..self }
+    }
 }
 
 #[inline]

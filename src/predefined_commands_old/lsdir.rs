@@ -1,6 +1,7 @@
+use crate::invoke::BasicCommandArgs;
 use crate::shell_util::matches_pattern;
 use crate::util::{make_absolute, SplitNotEscapedString};
-use crate::{CommandConfig, Issue};
+use crate::{Engine, Issue};
 use std::path::Path;
 
 #[derive(Default, Debug, Clone, Eq, PartialEq)]
@@ -11,14 +12,12 @@ pub struct LsdirConfig {
 }
 
 impl LsdirConfig {
-    pub fn new(cfg: &mut CommandConfig) -> Result<Self, Issue> {
+    pub fn new(args: &mut BasicCommandArgs) -> Result<Self, Issue> {
         let mut res = Self::default();
 
-        let body = cfg.process_body();
-
-        let mut spl = body.split_not_escaped(':', '\\', false);
+        let mut spl = args.arg_str.split_not_escaped(':', '\\', false);
         if spl.is_empty() {
-            return Err(cfg.missing_args("no path given"));
+            return Err(args.missing_args("no path given"));
         }
 
         res.path = spl.remove(0);
@@ -45,10 +44,10 @@ impl LsdirConfig {
                         .append(&mut object.split_not_escaped(' ', '\\', false));
                 }
                 verb => {
-                    cfg.issues.push(Issue {
+                    args.issues.push(Issue {
                         id: "command:invalid_args:partial",
                         msg: format!("warning: ignoring unrecognised verb `{}`", verb),
-                        span: cfg.cmd_span,
+                        span: args.cmd_span,
                     });
                 }
             }
@@ -81,22 +80,22 @@ impl LsdirConfig {
 ///         - `exclude_names`: the object is a whitespace-separated list of patterns (`'\ '` to escape a whitespace). Files whose names match one of these patterns will not be listed
 ///             - the patterns support character-by-character equality as well as single-star-globs
 ///         - `include_only_names`: the object is a whitespace-separated list of patterns (`'\ '` to escape a whitespace). Only Files whose names match one of these patterns will be listed
-pub fn handler(mut cfg: CommandConfig) -> String {
-    let config = match LsdirConfig::new(&mut cfg) {
+pub fn handler(mut args: BasicCommandArgs, engine: &mut Engine) -> String {
+    let config = match LsdirConfig::new(&mut args) {
         Ok(x) => x,
         Err(e) => {
-            cfg.issues.push(e);
+            args.issues.push(e);
             return String::new();
         }
     };
 
     let path: &Path = config.path.as_ref();
-    let dir = match make_absolute(path, cfg.engine.root_path.clone()) {
+    let dir = match make_absolute(path, engine.root_path.clone()) {
         Ok(x) => x,
         Err(e) => {
-            cfg.issues.push(Issue::io_error(
+            args.issues.push(Issue::io_error(
                 e,
-                cfg.cmd_span,
+                args.cmd_span,
                 Some("while trying to get the current directory"),
             ));
             return String::new();
@@ -106,9 +105,9 @@ pub fn handler(mut cfg: CommandConfig) -> String {
     let iter = match std::fs::read_dir(&dir) {
         Ok(x) => x,
         Err(e) => {
-            cfg.issues.push(Issue::io_error(
+            args.issues.push(Issue::io_error(
                 e,
-                cfg.cmd_span,
+                args.cmd_span,
                 Some(&format!(
                     "while trying to read the directory {}",
                     dir.display()
@@ -121,9 +120,9 @@ pub fn handler(mut cfg: CommandConfig) -> String {
     iter.filter_map(|r| match r {
         Ok(x) => Some(x),
         Err(e) => {
-            cfg.issues.push(Issue::io_error(
+            args.issues.push(Issue::io_error(
                 e,
-                cfg.cmd_span,
+                args.cmd_span,
                 Some(&format!(
                     "while reading a file from directory {}",
                     dir.display()

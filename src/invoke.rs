@@ -1,8 +1,8 @@
 use crate::util::{indicator, AutoEscape, CreateTakeWhileLevelGe0, Span, Unescape};
-use crate::{BasicHandler, BlockHandler, Engine, Issue};
-use std::collections::HashMap;
+use crate::{Engine, Issue};
 use std::iter::once;
 use std::mem::replace;
+use tlib::dbgr;
 
 #[inline]
 pub fn find_arg_start(s: &str) -> Option<(bool, usize)> {
@@ -72,7 +72,6 @@ impl<'a> BasicCommandArgs<'a> {
 pub fn invoke_basic_handlers(
     s: &str,
     i: usize,
-    handlers: &HashMap<String, BasicHandler>,
     engine: &mut Engine,
 ) -> Option<(usize, String, Vec<Issue>)> {
     // what's going on:
@@ -90,8 +89,6 @@ pub fn invoke_basic_handlers(
         None => (s, String::new(), s.len()),
     };
 
-    // println!("{}", head_str);
-
     // the *whole* command - including '%' and parentheses
     // even if the '%' is not in `s`
     let cmd_len = 1 + delta_len + arg_str.len();
@@ -100,7 +97,16 @@ pub fn invoke_basic_handlers(
 
     let cmd_len = cmd_span.len;
 
-    handlers.get(head_str).map(|handler| {
+    // dbgr!();
+    // println!("invoke {:?} with {:?}", head_str, engine);
+
+    let handler = engine.basic_commands.get(head_str).cloned();
+
+    if handler.is_some() {
+        println!("basic command: {}({})", head_str, arg_str);
+    }
+
+    handler.map(|handler| {
         let args = BasicCommandArgs {
             cmd_span,
             arg_str,
@@ -153,7 +159,6 @@ impl<'a> BlockCommandArgs<'a> {
 pub fn invoke_block_handlers(
     s: &str,
     i: usize,
-    handlers: &HashMap<String, BlockHandler>,
     engine: &mut Engine,
 ) -> Option<(usize, String, Vec<Issue>)> {
     // what's going on:
@@ -178,13 +183,13 @@ pub fn invoke_block_handlers(
         Some("%{") if s.len() > start_cmd_len + 1 => (),
         _ => return None,
     }
-    let tmp = s[start_cmd_len..].chars().collect::<Vec<_>>();
+    let tmp = s[start_cmd_len + 1..].chars().collect::<Vec<_>>();
     let body = tmp
         .windows(2)
-        .take_while_lvl_ge0(|&sl| sl == &['%', '('], |&sl| sl == &['%', ')'], false)
+        .take_while_lvl_ge0(|&sl| sl == ['%', '{'], |&sl| sl == ['%', '}'], false)
         .map(|sl| sl[0])
         .collect::<String>();
-    // %abc(...)%(defgh%)
+    // %abc(...)%{defgh%}
     // [-------]  [---]  ^- end
     // ^   ^        ^- body.len()
     // start_cmd_len
@@ -200,7 +205,13 @@ pub fn invoke_block_handlers(
 
     let cmd_len = cmd_span.len;
 
-    handlers.get(head_str).map(|handler| {
+    let handler = engine.block_commands.get(head_str).cloned();
+
+    if handler.is_some() {
+        println!("block command: {}({})", head_str, arg_str);
+    }
+
+    handler.map(|handler| {
         let args = BlockCommandArgs {
             cmd_span,
             start_cmd_span,

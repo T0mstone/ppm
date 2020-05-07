@@ -1,8 +1,12 @@
 use crate::invoke::BlockCommandArgs;
-use crate::util::{AutoEscape, CreateTakeWhileLevelGe0, SplitNotEscapedString, Unescape};
+use crate::util::CreateTakeWhileLevelGe0;
 use crate::{Engine, Issue};
 use std::iter::once;
-use tlib::iter_tools::{indicator, indicator_not_escaped, unescape_all};
+use std::mem::take;
+use tlib::dbgr;
+use tlib::iter_tools::{
+    indicator, indicator_not_escaped, unescape_all, AutoEscape, SplitNotEscapedString, Unescape,
+};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 enum ForConfig {
@@ -11,18 +15,18 @@ enum ForConfig {
 }
 
 impl ForConfig {
-    pub fn new(args: &BlockCommandArgs) -> Result<(String, Self), Issue> {
+    pub fn new(args: &mut BlockCommandArgs, engine: &mut Engine) -> Result<(String, Self), Issue> {
         let mut spl = args.arg_str.split(' ');
         let loopvar = spl
             .next()
-            .ok_or(args.invalid_args("no loop variable given".to_string()))?
+            .ok_or_else(|| args.invalid_args("no loop variable given".to_string()))?
             .to_string();
         match spl.next() {
             Some(s) if s.starts_with("in.sorted(") => {
                 const LEN: usize = "in.sorted(".len();
                 let full: String = once(s).chain(spl).collect::<Vec<_>>().join(" ");
 
-                let s2 = full[LEN..]
+                let s2: String = full[LEN..]
                     .chars()
                     .auto_escape(indicator('\\'))
                     .take_while_lvl_ge0(
@@ -32,11 +36,12 @@ impl ForConfig {
                     )
                     .unescape(unescape_all('\\'))
                     .collect::<String>();
+                let s2 = s2.trim_start().to_string();
 
                 let mut spl = s2.splitn_not_escaped(2, ':', '\\', false).into_iter();
 
                 let key = spl.next().unwrap();
-                let desc = match spl.next() {
+                let desc = match spl.next().map(|s| engine.process(s, args.issues)) {
                     Some(s) => match &s[..] {
                         "asc" | "ascending" | "inc" | "increasing" | "+" => false,
                         "desc" | "descending" | "dec" | "decreasing" | "-" => true,
@@ -55,8 +60,10 @@ impl ForConfig {
                     args.invalid_args("no list to iterate over given".to_string());
                     String::new()
                 } else {
-                    full[s2.len() + 1..].to_string()
+                    full[LEN + s2.len() + 1..].to_string()
                 };
+
+                let arg = engine.process(arg, args.issues);
 
                 Ok((
                     loopvar,
@@ -64,14 +71,21 @@ impl ForConfig {
                 ))
             }
             Some("in") => {
-                let arg = spl.collect::<Vec<_>>().join(" ");
+                let arg = spl.collect::<Vec<_>>().join(" ").trim_start().to_string();
+                let arg = engine.process(arg, args.issues);
                 Ok((
                     loopvar,
                     ForConfig::List(arg.split_not_escaped(':', '\\', false), None, false),
                 ))
             }
             Some("from") => {
-                let from = match spl.next().map(|s| s.parse::<i128>().map_err(|_| s)) {
+                let mut issues = take(args.issues);
+                let from_opt = spl
+                    .next()
+                    .map(|s| engine.process(s.to_string(), &mut issues))
+                    .map(|s| s.parse::<i128>().map_err(|_| s));
+                *args.issues = issues;
+                let from = match from_opt {
                     Some(Ok(x)) => x,
                     Some(Err(s)) => {
                         return Err(args.invalid_args(format!("invalid starting integer: {}", s)))
@@ -83,7 +97,13 @@ impl ForConfig {
                     Some(s) => return Err(args.invalid_args(format!("invalid range end: {}", s))),
                     None => return Err(args.invalid_args("no range end given".to_string())),
                 }
-                let to = match spl.next().map(|s| s.parse::<i128>().map_err(|_| s)) {
+                let mut issues = take(args.issues);
+                let to_opt = spl
+                    .next()
+                    .map(|s| engine.process(s.to_string(), &mut issues))
+                    .map(|s| s.parse::<i128>().map_err(|_| s));
+                *args.issues = issues;
+                let to = match to_opt {
                     Some(Ok(x)) => x,
                     Some(Err(s)) => {
                         return Err(args.invalid_args(format!("invalid ending integer: {}", s)))
@@ -104,15 +124,18 @@ impl ForConfig {
 ///     - there are two loop methods:
 ///         - `from _ to _` where the `_` are integers
 ///             - if the first number is larger than the second, it does nothing
+///             - calls `engine.process` on the `_`s before evaluating
 ///         - `in _` where the `_` is a list (colon-delimeted)
 ///             - escaping colons with `'\\'` is supported, all other instances of `'\\'` are left unchanged
+///             - calls `engine.process` on it before evaluating
 ///         - `in.sorted(key:order) _` is like `in _` but the `key` and `order` are responsible for sorting the list before iterating
 ///             - `key` is a string that will be interpreted by the engine and sorted by (has access to the loop variable)
 ///             - `order` is one of `asc, ascending, inc, increasing, +` (going from low to high) or `desc, descending, dec, decreasing, -` (going from high to low)
+///             - calls `engine.process` on `_` and `order` before evaluating
 /// - calls `engine.process` each time with the loop variable added to the variables
 ///     - it overwrites any previous value that name had, but restores it once finished
-pub fn handler(args: BlockCommandArgs, engine: &mut Engine) -> String {
-    let (loopvar, config) = match ForConfig::new(&args) {
+pub fn handler(mut args: BlockCommandArgs, engine: &mut Engine) -> String {
+    let (loopvar, config) = match ForConfig::new(&mut args, engine) {
         Ok(x) => x,
         Err(e) => {
             args.issues.push(e);
@@ -145,7 +168,7 @@ pub fn handler(args: BlockCommandArgs, engine: &mut Engine) -> String {
             }
             for s in &v {
                 engine.vars.insert(loopvar.clone(), s.clone());
-                res.push(engine.process(args.body.clone(), args.issues));
+                res.push(dbg!(engine.process(args.body.clone(), args.issues)));
             }
         }
     }

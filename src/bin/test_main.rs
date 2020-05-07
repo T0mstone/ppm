@@ -7,7 +7,7 @@ use ppm::*;
 use std::collections::HashMap;
 
 fn main() {
-    let s = "%alt(:::a)";
+    let s = "(%alt :::a%)(%alt :::b%)";
     let vars = HashMap::new();
     let mut en = Engine::with_predefined_commands(vars);
     let st = en.process_new(s.to_string());

@@ -60,6 +60,8 @@ pub fn run_process_handler(args: BasicCommandArgs, engine: &mut Engine) -> Strin
     // the `split_args` will always at least produce an empty string for `cmd`
     let (cmd, argv) = head_tail(v).unwrap();
 
+    println!("run command {} with args {:?}", cmd, argv);
+
     if cmd.is_empty() {
         args.issues
             .push(args.missing_args("no process to run given"));
@@ -86,7 +88,11 @@ pub fn run_process_handler(args: BasicCommandArgs, engine: &mut Engine) -> Strin
         }
     };
 
-    String::from_utf8_lossy(&output.stdout).to_string()
+    let res = String::from_utf8_lossy(&output.stdout).to_string();
+
+    println!("Output is {:?}", res);
+
+    res
 }
 
 /// outputs its argument literally, preventing it from being processed
@@ -101,14 +107,14 @@ pub fn literal_handler(args: BasicCommandArgs, _: &mut Engine) -> String {
 /// - short circuits
 /// - calls `engine.process` on every argument before deciding
 pub fn fallback_handler(args: BasicCommandArgs, engine: &mut Engine) -> String {
-    let mut spl = args
+    let spl = args
         .arg_str
         .chars()
         .auto_escape(indicator('\\'))
         .split(indicator_not_escaped(':'), false);
 
     let mut cumulen = None;
-    while let Some(v) = spl.next() {
+    for v in spl {
         let len = v
             .iter()
             .map(|&(esc, c)| c.len_utf8() + if esc { 1 } else { 0 })
