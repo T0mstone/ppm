@@ -1,6 +1,6 @@
 [package]
 name = "ppm"
-version = "0.4.1"
+version = "0.5.0"
 authors = ["T0mstone <realt0mstone@gmail.com>"]
 edition = "2018"
 
@@ -11,9 +11,9 @@ doc = false
 [dependencies]
 
 [dependencies.tlib]
-#git = "git://github.com/T0mstone/tlib"
-#rev = "a1c873b865cecd7af664f46771f915b4b1b83295"
-path = "../tlib"
+git = "git://github.com/T0mstone/tlib"
+rev = "048f9005b8512f79a615b2bfdce98ed8993dc7d5"
+#path = "../tlib" # for development purposes (on my machine)
 features = ["use_std"]
 
 [dependencies.regex]

@@ -9,8 +9,12 @@ struct RegexArgs {
 }
 
 impl RegexArgs {
-    pub fn new(cfg: &CommandConfig) -> Result<Self, Issue> {
-        let mut spl = cfg.body.splitn_not_escaped(3, ':', '\\', false).into_iter();
+    pub fn new(cfg: &mut CommandConfig) -> Result<Self, Issue> {
+        let mut spl = cfg
+            .process_body()
+            // because it is already processed, we don't need tools::split_args here
+            .splitn_not_escaped::<Vec<_>>(3, ':', '\\', false)
+            .into_iter();
 
         let pat = spl.next().unwrap();
         if pat.is_empty() {
@@ -19,11 +23,11 @@ impl RegexArgs {
 
         let sub = spl
             .next()
-            .ok_or(cfg.invalid_args("no substitution pattern given".to_string()))?;
+            .ok_or_else(|| cfg.invalid_args("no substitution pattern given".to_string()))?;
 
         let text = spl
             .next()
-            .ok_or(cfg.invalid_args("no string to substitute to".to_string()))?;
+            .ok_or_else(|| cfg.invalid_args("no string to substitute to".to_string()))?;
         Ok(Self { pat, sub, text })
     }
 }
@@ -45,10 +49,10 @@ fn regex_impl(args: RegexArgs, mut cfg: CommandConfig) -> String {
 /// (requires the `regex` feature) handles a regular expression (using the [`regex`](https://docs.rs/regex) crate)
 /// - arguments: the regex, the substitution and the text to substitute into, separated with colons
 ///     - escaping colons with `'\\'` is supported, all other instances of `'\\'` are left unchanged
-/// - calls `engine.process` on its argument before and after substitution
+/// - calls `engine.process` on its argument string before doing anything and also after evaluation
 #[inline]
-pub fn handler(cfg: CommandConfig) -> String {
-    let re_args = match RegexArgs::new(&cfg) {
+pub fn handler(mut cfg: CommandConfig) -> String {
+    let re_args = match RegexArgs::new(&mut cfg) {
         Ok(x) => x,
         Err(e) => {
             cfg.issues.push(e);

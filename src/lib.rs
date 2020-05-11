@@ -24,6 +24,8 @@ use tlib::iter_tools::{AutoEscape, IterSplit, Unescape};
 mod shell_util;
 mod util;
 
+// fixme: for some reason the subspan calculations are slightly off
+
 /// Predefined Commands
 pub mod predefined_commands;
 
@@ -149,23 +151,28 @@ impl<'a, 'b> CommandConfig<'a, 'b> {
         unsafe { &mut *(self.engine as *mut _ as *mut Engine<Free>) }
     }
 
-    /// Processes a string with `self.engine`
+    /// Processes a string with `self.engine`, interpreting all issues' spans as being subspans of `self.cmd_span`
     #[inline]
     pub fn process(&mut self, s: String) -> String {
         let eng: &mut Engine<Free> = self.free_engine();
         let (res, is) = eng.process_new(s);
-        absorb_new_issues(self.issues, self.body_span, is);
+        absorb_new_issues(self.issues, self.cmd_span, is);
         res
     }
 
     /// Processes `self.body` with `self.engine`
     #[inline]
     pub fn process_body(&mut self) -> String {
+        let eng: &mut Engine<Free> = self.free_engine();
         let body = take(&mut self.body);
-        self.process(body)
+        let (res, is) = eng.process_new(body);
+        absorb_new_issues(self.issues, self.body_span, is);
+        res
     }
 
-    /// Processes some provided portion of `self.body` with `self.engine`
+    /// Processes some provided portion of `self.body` with `self.engine`,
+    /// interpreting all issues' spans as being subspans of `subspan`,
+    /// which in turn is interpreted as being a subspan of `self.body_span`
     #[inline]
     pub fn process_subbody(&mut self, subbody: String, subspan: Span) -> Option<String> {
         let eng: &mut Engine<Free> = self.free_engine();
@@ -439,14 +446,14 @@ impl Engine<Free> {
                         .copied()
                     {
                         Some(handler) => {
-                            let args = CommandConfig {
+                            let cfg = CommandConfig {
                                 body,
                                 body_span,
                                 cmd_span,
                                 issues,
                                 engine: self.capture(),
                             };
-                            res.push(handler(args));
+                            res.push(handler(cfg));
                         }
                         None => {
                             issues.push(Issue {
@@ -566,7 +573,7 @@ mod tests {
 
     #[test]
     fn test_for_range() {
-        let s = "(%for i from 1 to 10;(%i%)%)";
+        let s = "(%for i from 1 to 10:(%i%)%)";
         let vars = HashMap::new();
         let mut en = Engine::with_predefined_commands(vars);
         let (s, i) = en.process_new(s.to_string());
@@ -576,21 +583,59 @@ mod tests {
 
     #[test]
     fn test_for_in() {
-        let s = "(%for i in a:b:c;(%i%)%)";
+        let s = "(%for i in (%eval a:b:c%):(%i%)%)";
+        let s2 = "(%for i in a\\:b\\:c:(%i%)%)";
         let vars = HashMap::new();
         let mut en = Engine::with_predefined_commands(vars);
         let (s, i) = en.process_new(s.to_string());
         assert_eq!(i, vec![]);
         assert_eq!(&s, "abc");
+        let (s, i) = en.process_new(s2.to_string());
+        assert_eq!(i, vec![]);
+        assert_eq!(&s, "abc");
     }
 
+    // #[test]
+    // fn test_sort() {
+    //     let s = "(%sort +:a:c:d:b%)";
+    //     let vars = HashMap::new();
+    //     let mut en = Engine::with_predefined_commands(vars);
+    //     let (s, i) = en.process_new(s.to_string());
+    //     assert_eq!(i, vec![]);
+    //     assert_eq!(&s, "a:b:c:d");
+    //     let s = "(%sort -:a:c:d:b%)";
+    //     let (s, i) = en.process_new(s.to_string());
+    //     assert_eq!(i, vec![]);
+    //     assert_eq!(&s, "d:c:b:a");
+    // }
+
     #[test]
-    fn test_for_in_sorted() {
-        let s = "(%for i in.sorted((%i%):-)a:b:c;(%i%)%)";
+    fn test_sort_by() {
+        let s = "(%sort_by i + z(%i%):a:c:d:b%)";
         let vars = HashMap::new();
         let mut en = Engine::with_predefined_commands(vars);
         let (s, i) = en.process_new(s.to_string());
         assert_eq!(i, vec![]);
-        assert_eq!(&s, "cba");
+        assert_eq!(&s, "a:b:c:d");
+        let s = "(%sort_by i - (%(%i%)%):a:c:d:b%)";
+        let mut vars = HashMap::new();
+        vars.insert("a".to_string(), "z".to_string());
+        vars.insert("b".to_string(), "y".to_string());
+        vars.insert("c".to_string(), "x".to_string());
+        vars.insert("d".to_string(), "w".to_string());
+        let mut en = Engine::with_predefined_commands(vars);
+        let (s, i) = en.process_new(s.to_string());
+        assert_eq!(i, vec![]);
+        assert_eq!(&s, "a:b:c:d");
     }
+
+    // #[test]
+    // fn test_for_in_sorted() {
+    //     let s = "(%for i in.sorted((%i%):-)a:b:c;(%i%)%)";
+    //     let vars = HashMap::new();
+    //     let mut en = Engine::with_predefined_commands(vars);
+    //     let (s, i) = en.process_new(s.to_string());
+    //     assert_eq!(i, vec![]);
+    //     assert_eq!(&s, "cba");
+    // }
 }

@@ -16,7 +16,8 @@ impl LsdirConfig {
 
         let body = cfg.process_body();
 
-        let mut spl = body.split_not_escaped(':', '\\', false);
+        // because it is already processed, we don't need tools::split_args here
+        let mut spl = body.split_not_escaped::<Vec<_>>(':', '\\', false);
         if spl.is_empty() {
             return Err(cfg.missing_args("no path given"));
         }
